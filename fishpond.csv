@@ -1,0 +1,53 @@
+import pandas as pd
+import numpy as np
+
+# 1. Define the timeframe (1 month, hourly interval)
+start_date = '2026-05-01 00:00:00'
+end_date = '2026-05-31 23:00:00'
+datetime_index = pd.date_range(start=start_date, end=end_date, freq='H')
+
+# 2. Extract the hour of the day to calculate diurnal cycles
+hours = datetime_index.hour.values
+
+# 3. Simulate Temperature (Peaks around 15:00, lowest around 05:00)
+# Base temp 28.5 C, amplitude 2.5 C
+temp_base = 28.5
+temp_amplitude = 2.5
+# Shift the sine wave so the lowest point is at 5 AM
+temp_values = temp_base + temp_amplitude * np.sin((hours - 9) * (2 * np.pi / 24))
+# Add random environmental noise (cloud cover, wind, etc.)
+temp_values += np.random.normal(0, 0.2, len(hours))
+
+# 4. Simulate Dissolved Oxygen (Peaks around 16:00, lowest around 05:00)
+# Base DO 6.0 mg/L, amplitude 2.5 mg/L
+do_base = 6.0
+do_amplitude = 2.5
+do_values = do_base + do_amplitude * np.sin((hours - 10) * (2 * np.pi / 24))
+do_values += np.random.normal(0, 0.15, len(hours))
+
+# 5. Simulate pH (Tied to photosynthesis, similar curve to DO)
+# Base pH 7.7, amplitude 0.45
+ph_base = 7.75
+ph_amplitude = 0.45
+ph_values = ph_base + ph_amplitude * np.sin((hours - 10) * (2 * np.pi / 24))
+ph_values += np.random.normal(0, 0.05, len(hours))
+
+# 6. Create the DataFrame and round values for realism
+df = pd.DataFrame({
+    'Timestamp': datetime_index,
+    'Temperature_C': np.round(temp_values, 1),
+    'Dissolved_Oxygen_mgL': np.round(do_values, 1),
+    'pH_Level': np.round(ph_values, 2)
+})
+
+# Ensure DO doesn't drop below a critical threshold unnaturally in the random noise
+df['Dissolved_Oxygen_mgL'] = df['Dissolved_Oxygen_mgL'].clip(lower=2.5)
+
+# 7. Save to CSV
+filename = 'fishpond_data_1_month.csv'
+df.to_csv(filename, index=False)
+
+print(f"Successfully generated {len(df)} rows of data.")
+print(f"Saved to: {filename}")
+print("\nFirst 5 rows:")
+print(df.head())
